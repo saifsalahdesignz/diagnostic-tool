@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnostic Estimator Tool</title>
+  
+  <!-- Typography: Montserrat (Headers) and Inter (Body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* Tech-Noir Theme Custom Properties */
+    :root {
+      --bg-color: #1A1A1A;
+      --surface-color: #262626;
+      --accent-color: #40E0D0; /* Turquoise */
+      --accent-glow: rgba(64, 224, 208, 0.2);
+      --accent-hover: #5bf1e1;
+      --text-color: #FFFFFF;
+      --text-muted: #A3A3A3;
+      --border-color: #333333;
+      --border-focus: #555555;
+      
+      --font-header: 'Montserrat', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      
+      --shadow-primary: 0 4px 12px rgba(0, 0, 0, 0.3);
+      --shadow-glow: 0 0 20px rgba(64, 224, 208, 0.15);
+      --transition-speed: 0.3s;
+    }
+
+    /* Reset & Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* Responsive Main Container (375px to 1000px) */
+    .app-container {
+      width: 100%;
+      min-width: 335px;
+      max-width: 1000px;
+      background: var(--surface-color);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-primary);
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      min-height: 620px;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+      .app-container {
+        padding: 20px 15px;
+        min-height: auto;
+      }
+    }
+
+    /* Header & Progress Indicator */
+    header {
+      margin-bottom: 25px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 20px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .brand-title {
+      font-family: var(--font-header);
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-title span {
+      color: var(--accent-color);
+      text-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .step-badge {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    /* Modern Progress Track */
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent-color);
+      box-shadow: 0 0 10px var(--accent-color);
+      border-radius: 3px;
+      width: 9.09%; /* Starts at 1/11 */
+      transition: width var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* App-like Hidden Div State Machine Setup */
+    .state-panes-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .state-pane {
+      display: none;
+      opacity: 0;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    /* Entry Animations using Keyframes */
+    .state-pane.active {
+      display: flex;
+      animation: paneFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes paneFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .state-title {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+      color: var(--text-color);
+    }
+
+    .state-subtitle {
+      font-family: var(--font-body);
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+    }
+
+    /* Responsive Grid for Card Selection */
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    @media (max-width: 580px) {
+      .options-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+    }
+
+    /* Option Card Styling */
+    .option-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      cursor: pointer;
+      text-align: left;
+      transition: all var(--transition-speed) cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .option-card:hover {
+      background: rgba(64, 224, 208, 0.03);
+      border-color: var(--accent-color);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .option-card.selected {
+      background: rgba(64, 224, 208, 0.06);
+      border-color: var(--accent-color);
+      box-shadow: var(--shadow-glow), inset 0 0 10px rgba(64, 224, 208, 0.1);
+    }
+
+    .option-card.selected::after {
+      content: '';
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 8px;
+      height: 8px;
+      background: var(--accent-color);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-color);
+    }
+
+    /* Card Contents */
+    .card-icon {
+      margin-bottom: 12px;
+      color: var(--accent-color);
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(64, 224, 208, 0.08);
+      border-radius: 6px;
+      transition: transform var(--transition-speed) ease;
+    }
+
+    .option-card:hover .card-icon {
+      transform: scale(1.1);
+    }
+
+    .card-title {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+    }
+
+    .card-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      flex: 1;
+      margin-bottom: 15px;
+    }
+
+    .card-impact {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--accent-color);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 10px;
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-impact span {
+      background: rgba(64, 224, 208, 0.12);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    /* Bottom Toolbar */
+    .bottom-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-color);
+      padding-top: 20px;
+      margin-top: auto;
+    }
+
+    .btn {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 12px 24px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      color: var(--text-color);
+      border-color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-primary {
+      background: var(--accent-color);
+      color: var(--bg-color);
+      box-shadow: 0 2px 8px rgba(64, 224, 208, 0.2);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 12px rgba(64, 224, 208, 0.4);
+    }
+
+    /* Running Summary Box */
+    .running-summary {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .running-summary strong {
+      color: var(--text-color);
+    }
+
+    /* Results Screen Styling */
+    .results-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .results-glow-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(64, 224, 208, 0.08);
+      border: 2px solid var(--accent-color);
+      box-shadow: var(--shadow-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-color);
+      margin-bottom: 24px;
+      animation: pulse 2s infinite alternate;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 10px rgba(64, 224, 208, 0.2);
+        transform: scale(1);
+      }
+      100% {
+        box-shadow: 0 0 25px rgba(64, 224, 208, 0.5);
+        transform: scale(1.05);
+      }
+    }
+
+    /* Price Range Block */
+    .estimate-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 30px;
+      margin: 20px 0 30px 0;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+    }
+
+    .estimate-label {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-color);
+      margin-bottom: 10px;
+    }
+
+    #txtEstimate {
+      font-family: var(--font-header);
+      font-weight: 800;
+      font-size: 2.2rem;
+      letter-spacing: -0.02em;
+      color: var(--text-color);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 480px) {
+      #txtEstimate {
+        font-size: 1.8rem;
+      }
+    }
+
+    .estimate-details {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Selection Recap Details */
+    .recap-list {
+      width: 100%;
+      max-width: 600px;
+      margin: 10px 0 30px 0;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 15px 20px;
+      text-align: left;
+    }
+
+    .recap-list-title {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text-color);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .recap-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 580px) {
+      .recap-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .recap-item {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      padding-bottom: 4px;
+    }
+
+    .recap-item span:first-child {
+      font-weight: 600;
+      color: #D4D4D4;
+    }
+
+    .recap-item span:last-child {
+      color: var(--accent-color);
+    }
+
+    /* postMessage Handshake Log Banner (UI simulation) */
+    .handshake-toast {
+      background: rgba(64, 224, 208, 0.08);
+      border: 1px dashed var(--accent-color);
+      color: var(--accent-color);
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-family: monospace;
+      margin-top: 15px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 500px;
+      text-align: left;
+    }
+
+    .handshake-toast.show {
+      display: flex;
+    }
+
+    .handshake-toast svg {
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header Area -->
+    <header>
+      <div class="header-top">
+        <div class="brand-title">
+          <span>//</span> Diagnostic Estimator
+        </div>
+        <div class="step-badge" id="lblStepBadge">Step 1 of 10</div>
+      </div>
+      
+      <!-- Progress Tracker -->
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+    </header>
+
+    <!-- State Panes (Hidden Div Structure) -->
+    <div class="state-panes-wrapper">
+
+      <!-- State 1: ScopeSelection -->
+      <div id="state-ScopeSelection" class="state-pane active">
+        <h2 class="state-title">Project Scope</h2>
+        <p class="state-subtitle">Select the foundational architecture that best fits your requirements.</p>
+        <div class="options-grid">
+          <div class="option-card" onclick="handleSelection('ScopeSelection', 0)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+            </div>
+            <div class="card-title">Landing Page</div>
+            <div class="card-desc">Single-page layout, focused conversion rates, clean layout, fully responsive.</div>
+            <div class="card-impact">Base Cost <span>+$500</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('ScopeSelection', 1)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            </div>
+            <div class="card-title">Informational Website</div>
+            <div class="card-desc">Multi-page framework, brand profiling, services, contact grids, and blog resources.</div>
+            <div class="card-impact">Base Cost <span>+$1,200</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('ScopeSelection', 2)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            </div>
+            <div class="card-title">Web Application / E-Com</div>
+            <div class="card-desc">Fully interactive SaaS dashboard, digital store, or deep user dashboard workflow.</div>
+            <div class="card-impact">Base Cost <span>+$2,500</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State 2: UserLogin -->
+      <div id="state-UserLogin" class="state-pane">
+        <h2 class="state-title">User Authentication</h2>
+        <p class="state-subtitle">How will users authenticate or access customized services?</p>
+        <div class="options-grid">
+          <div class="option-card" onclick="handleSelection('UserLogin', 0)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <div class="card-title">None Required</div>
+            <div class="card-desc">Public access website, landing layouts. No profile storage necessary.</div>
+            <div class="card-impact">Cost Impact <span>+$0</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('UserLogin', 1)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><path d="M17 11h6"></path><path d="M20 8v6"></path></svg>
+            </div>
+            <div class="card-title">Social Auth</div>
+            <div class="card-desc">Login with Google, Apple, or Facebook. Streamlined user registration.</div>
+            <div class="card-impact">Cost Impact <span>+$400</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('UserLogin', 2)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <div class="card-title">Custom Secure Credentials</div>
+            <div class="card-desc">Secure database profiles, strict password policies, roles & permissions layout.</div>
+            <div class="card-impact">Cost Impact <span>+$1,000</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State 3: PageCount -->
+      <div id="state-PageCount" class="state-pane">
+        <h2 class="state-title">Page Volume</h2>
+        <p class="state-subtitle">Select the expected number of structural layout templates or static pages.</p>
+        <div class="options-grid">
+          <div class="option-card" onclick="handleSelection('PageCount', 0)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <div class="card-title">1 - 5 Pages</div>
+            <div class="card-desc">Sleek micro-site setup, core conversion points, streamlined layout maps.</div>
+            <div class="card-impact">Cost Impact <span>+$200</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('PageCount', 1)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <div class="card-title">6 - 15 Pages</div>
+            <div class="card-desc">Standard business representation, services, detailed pricing layout modules.</div>
+            <div class="card-impact">Cost Impact <span>+$500</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('PageCount', 2)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <div class="card-title">16 - 50 Pages</div>
+            <div class="card-desc">Expansive profile structure, service catalogs, detailed regional index options.</div>
+            <div class="card-impact">Cost Impact <span>+$1,200</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('PageCount', 3)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <div class="card-title">50+ Pages</div>
+            <div class="card-desc">CMS database-driven layouts, extensive lists, complex tag taxonomies.</div>
+            <div class="card-impact">Cost Impact <span>+$2,500</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State 4: Payments -->
+      <div id="state-Payments" class="state-pane">
+        <h2 class="state-title">Payment Gateways</h2>
+        <p class="state-subtitle">Do you require processing, subscriptions, or checkout APIs?</p>
+        <div class="options-grid">
+          <div class="option-card" onclick="handleSelection('Payments', 0)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+            </div>
+            <div class="card-title">No Payments</div>
+            <div class="card-desc">No digital sales or dynamic booking charges are needed on the interface.</div>
+            <div class="card-impact">Cost Impact <span>+$0</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('Payments', 1)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+            </div>
+            <div class="card-title">Basic Payments</div>
+            <div class="card-desc">One-time payment checkouts using standard Stripe, Square, or PayPal links.</div>
+            <div class="card-impact">Cost Impact <span>+$300</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('Payments', 2)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+            </div>
+            <div class="card-title">Complex Payments</div>
+            <div class="card-desc">Recurring client subscriptions, multi-currency processing, invoicing dashboards.</div>
+            <div class="card-impact">Cost Impact <span>+$900</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State 5: TransactionType -->
+      <div id="state-TransactionType" class="state-pane">
+        <h2 class="state-title">Checkout / Transaction Type</h2>
+        <p class="state-subtitle">Define the structural engine for your sales and client checkouts.</p>
+        <div class="options-grid">
+          <div class="option-card" onclick="handleSelection('TransactionType', 0)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>
+            </div>
+            <div class="card-title">Single Item / Donation</div>
+            <div class="card-desc">Simple "Buy Now" button flow. Bypasses shopping carts completely.</div>
+            <div class="card-impact">Cost Impact <span>+$150</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('TransactionType', 1)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            </div>
+            <div class="card-title">Custom Cart & Checkout</div>
+            <div class="card-desc">Full shopping cart mechanics, order verification, taxes, shipping calculation API.</div>
+            <div class="card-impact">Cost Impact <span>+$600</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('TransactionType', 2)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+            <div class="card-title">Booking Engine</div>
+            <div class="card-desc">Appointment schedulers, reservation management grids, time slot locks.</div>
+            <div class="card-impact">Cost Impact <span>+$1,100</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State 6: DatabaseConnection -->
+      <div id="state-DatabaseConnection" class="state-pane">
+        <h2 class="state-title">Database & Infrastructure</h2>
+        <p class="state-subtitle">What scale of backend data structure or API storage does the app require?</p>
+        <div class="options-grid">
+          <div class="option-card" onclick="handleSelection('DatabaseConnection', 0)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+            </div>
+            <div class="card-title">Static Site / None</div>
+            <div class="card-desc">No dynamic user content database. Fully static front-end deployment.</div>
+            <div class="card-impact">Cost Impact <span>+$0</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('DatabaseConnection', 1)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>
+            </div>
+            <div class="card-title">Standard Database</div>
+            <div class="card-desc">Relational structure for logins, posts, profile editing, form logs.</div>
+            <div class="card-impact">Cost Impact <span>+$750</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('DatabaseConnection', 2)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            </div>
+            <div class="card-title">High Performance / Realtime</div>
+            <div class="card-desc">Websocket sync, real-time chats, stock listings, rapid charts, custom REST/GraphQL APIs.</div>
+            <div class="card-impact">Cost Impact <span>+$1,800</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State 7: Photography -->
+      <div id="state-Photography" class="state-pane">
+        <h2 class="state-title">Media & Brand Assets</h2>
+        <p class="state-subtitle">How will the project obtain photographic content and graphic UI details?</p>
+        <div class="options-grid">
+          <div class="option-card" onclick="handleSelection('Photography', 0)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <div class="card-title">Client Provided</div>
+            <div class="card-desc">You supply all necessary photos, images, vectors, and brand media files.</div>
+            <div class="card-impact">Cost Impact <span>+$0</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('Photography', 1)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            </div>
+            <div class="card-title">Premium Stock Assets</div>
+            <div class="card-desc">Curation and purchasing of professional licensing stock images.</div>
+            <div class="card-impact">Cost Impact <span>+$250</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('Photography', 2)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            </div>
+            <div class="card-title">Professional Photoshoot</div>
+            <div class="card-desc">On-site professional portrait, workspace photo grids, product highlights.</div>
+            <div class="card-impact">Cost Impact <span>+$1,000</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State 8: SEO -->
+      <div id="state-SEO" class="state-pane">
+        <h2 class="state-title">SEO & Discoverability</h2>
+        <p class="state-subtitle">Configure search engine performance and organic content positioning.</p>
+        <div class="options-grid">
+          <div class="option-card" onclick="handleSelection('SEO', 0)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div class="card-title">Basic SEO Setup</div>
+            <div class="card-desc">Google Index validation, XML sitemap generation, structured page Titles/Metas.</div>
+            <div class="card-impact">Cost Impact <span>+$150</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('SEO', 1)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </div>
+            <div class="card-title">Advanced Optimization</div>
+            <div class="card-desc">JSON-LD schemas, structural keyword tracking, performance audits.</div>
+            <div class="card-impact">Cost Impact <span>+$600</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('SEO', 2)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+            </div>
+            <div class="card-title">Professional Strategy</div>
+            <div class="card-desc">Aggressive competitor analysis, copywriting setup, monthly reporting cycles.</div>
+            <div class="card-impact">Cost Impact <span>+$1,500</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State 9: CMS -->
+      <div id="state-CMS" class="state-pane">
+        <h2 class="state-title">Content Management System (CMS)</h2>
+        <p class="state-subtitle">Determine how website text, blogs, and media entries will be updated.</p>
+        <div class="options-grid">
+          <div class="option-card" onclick="handleSelection('CMS', 0)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            </div>
+            <div class="card-title">Static / Code-Only</div>
+            <div class="card-desc">Updates require direct HTML edits. Ideal for ultra-fast, maintenance-free sites.</div>
+            <div class="card-impact">Cost Impact <span>+$0</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('CMS', 1)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            </div>
+            <div class="card-title">Visual Editor CMS</div>
+            <div class="card-desc">Wix, WordPress, or Webflow visual panel to edit content easily.</div>
+            <div class="card-impact">Cost Impact <span>+$400</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('CMS', 2)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3z"></path><path d="M6 21a3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3v12a3 3 0 0 0 3 3z"></path></svg>
+            </div>
+            <div class="card-title">Headless CMS Engine</div>
+            <div class="card-desc">Sanity, Strapi, or Contentful API. High flexibility, multi-device sync.</div>
+            <div class="card-impact">Cost Impact <span>+$1,200</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State 10: LeadCapture -->
+      <div id="state-LeadCapture" class="state-pane">
+        <h2 class="state-title">User Inquiries & Leads</h2>
+        <p class="state-subtitle">How will the project capture contacts, quotes, or incoming proposals?</p>
+        <div class="options-grid">
+          <div class="option-card" onclick="handleSelection('LeadCapture', 0)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </div>
+            <div class="card-title">Standard Contact Form</div>
+            <div class="card-desc">Standard name, email, query textareas routing responses directly to inbox.</div>
+            <div class="card-impact">Cost Impact <span>+$100</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('LeadCapture', 1)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <div class="card-title">Multi-step Intake Form</div>
+            <div class="card-desc">Dynamic validation, branched logic, interactive fields, file uploads.</div>
+            <div class="card-impact">Cost Impact <span>+$350</span></div>
+          </div>
+          <div class="option-card" onclick="handleSelection('LeadCapture', 2)">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="15" y2="17"></line></svg>
+            </div>
+            <div class="card-title">Intelligent Calculator Widget</div>
+            <div class="card-desc">Live calculations, PDF quote generation, automated intake scoring.</div>
+            <div class="card-impact">Cost Impact <span>+$950</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State 11: Results -->
+      <div id="state-Results" class="state-pane">
+        <div class="results-container">
+          <div class="results-glow-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          </div>
+
+          <h2 class="state-title">Calculation Complete</h2>
+          <p class="state-subtitle" style="margin-bottom: 10px;">Based on your choices, we have compiled an estimated budget range for development.</p>
+          
+          <!-- Price Range Display (#txtEstimate) -->
+          <div class="estimate-box">
+            <div class="estimate-label">Estimated Budget Range</div>
+            <div id="txtEstimate">$0 - $0</div>
+            <div class="estimate-details" id="lblEstimateMultiplier">
+              Includes base configurations and accumulated complexity factors.
+            </div>
+          </div>
+
+          <!-- Selection Recap -->
+          <div class="recap-list">
+            <div class="recap-list-title">Selected Configurations Recap</div>
+            <div class="recap-grid" id="recapGrid">
+              <!-- Dynamically populated recap items -->
+            </div>
+          </div>
+
+          <!-- postMessage Handshake UI Toast -->
+          <div class="handshake-toast" id="handshakeToast">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div id="handshakeMessage">data transmitted to Wix Lightbox parent frame.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Navigation Toolbar -->
+    <div class="bottom-toolbar">
+      <button class="btn btn-secondary" id="btnBack" onclick="goBack()" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Back
+      </button>
+
+      <!-- Baseline Estimator Indicator -->
+      <div class="running-summary" id="runningSummary">
+        <span>Est: </span><strong id="lblRunningEst">$0</strong>
+      </div>
+
+      <button class="btn btn-primary" id="btnAction" onclick="btnActionClick()">
+        Next
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- JavaScript State Machine & Calculator -->
+  <script>
+    // 1. Definition of States (11 states total)
+    const states = [
+      'ScopeSelection',
+      'UserLogin',
+      'PageCount',
+      'Payments',
+      'TransactionType',
+      'DatabaseConnection',
+      'Photography',
+      'SEO',
+      'CMS',
+      'LeadCapture',
+      'Results'
+    ];
+
+    // 2. Data Matrix mapping selections to Costs and Multipliers
+    const pricingData = {
+      ScopeSelection: [
+        { name: 'Landing Page', cost: 500, mult: 0.0 },
+        { name: 'Informational Website', cost: 1200, mult: 0.1 },
+        { name: 'Web Application / E-Com', cost: 2500, mult: 0.3 }
+      ],
+      UserLogin: [
+        { name: 'None Required', cost: 0, mult: 0.0 },
+        { name: 'Social Auth', cost: 400, mult: 0.05 },
+        { name: 'Custom Credentials', cost: 1000, mult: 0.1 }
+      ],
+      PageCount: [
+        { name: '1 - 5 Pages', cost: 200, mult: 0.0 },
+        { name: '6 - 15 Pages', cost: 500, mult: 0.05 },
+        { name: '16 - 50 Pages', cost: 1200, mult: 0.1 },
+        { name: '50+ Pages', cost: 2500, mult: 0.2 }
+      ],
+      Payments: [
+        { name: 'No Payments', cost: 0, mult: 0.0 },
+        { name: 'Basic Payments', cost: 300, mult: 0.05 },
+        { name: 'Complex Payments', cost: 900, mult: 0.15 }
+      ],
+      TransactionType: [
+        { name: 'Single Item / Donation', cost: 150, mult: 0.0 },
+        { name: 'Custom Cart & Checkout', cost: 600, mult: 0.1 },
+        { name: 'Booking Engine', cost: 1100, mult: 0.15 }
+      ],
+      DatabaseConnection: [
+        { name: 'Static Site / None', cost: 0, mult: 0.0 },
+        { name: 'Standard Database', cost: 750, mult: 0.1 },
+        { name: 'High Performance / Realtime', cost: 1800, mult: 0.2 }
+      ],
+      Photography: [
+        { name: 'Client Provided', cost: 0, mult: 0.0 },
+        { name: 'Premium Stock Assets', cost: 250, mult: 0.0 },
+        { name: 'Professional Photoshoot', cost: 1000, mult: 0.05 }
+      ],
+      SEO: [
+        { name: 'Basic SEO Setup', cost: 150, mult: 0.0 },
+        { name: 'Advanced Optimization', cost: 600, mult: 0.05 },
+        { name: 'Professional Strategy', cost: 1500, mult: 0.1 }
+      ],
+      CMS: [
+        { name: 'Static / Code-Only', cost: 0, mult: 0.0 },
+        { name: 'Visual Editor CMS', cost: 400, mult: 0.05 },
+        { name: 'Headless CMS Engine', cost: 1200, mult: 0.1 }
+      ],
+      LeadCapture: [
+        { name: 'Standard Contact Form', cost: 100, mult: 0.0 },
+        { name: 'Multi-step Intake Form', cost: 350, mult: 0.05 },
+        { name: 'Intelligent Calculator', cost: 950, mult: 0.1 }
+      ]
+    };
+
+    // 3. State Accumulators & History Stack
+    let currentStepIndex = 0;
+    let totalCost = 0;
+    let baseMultiplier = 1.0;
+    let stateHistory = []; // Array-based navigation stack
+    let selections = {};   // Keeps track of index selected per state
+
+    // 4. Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      renderActiveState();
+      updateRunningEstimate();
+    });
+
+    // 5. Card Selection click handler
+    function handleSelection(stateName, optionIndex) {
+      const stepIndex = states.indexOf(stateName);
+      if (stepIndex !== currentStepIndex) return;
+
+      const stateOptions = pricingData[stateName];
+      const selectedOption = stateOptions[optionIndex];
+
+      // Save the current selection visual styling in the grid
+      const activePane = document.getElementById(`state-${stateName}`);
+      const cards = activePane.querySelectorAll('.option-card');
+      cards.forEach((card, idx) => {
+        if (idx === optionIndex) {
+          card.classList.add('selected');
+        } else {
+          card.classList.remove('selected');
+        }
+      });
+
+      // Update state selection
+      selections[stateName] = optionIndex;
+
+      // Automatically advance step after short UX delay
+      setTimeout(() => {
+        goNext();
+      }, 250);
+    }
+
+    // 6. Navigation: Next Step
+    function goNext() {
+      const currentSelection = selections[states[currentStepIndex]];
+      
+      // If we haven't selected anything for this step and it's not the final step, prevent advance
+      if (currentSelection === undefined && currentStepIndex < states.length - 1) {
+        alert("Please make a selection to proceed.");
+        return;
+      }
+
+      // If we are on the step before Results (LeadCapture), compile Results first
+      if (currentStepIndex === states.length - 2) {
+        // Log selection and move forward
+        pushHistory();
+        const currentSelectionObj = pricingData[states[currentStepIndex]][currentSelection];
+        totalCost += currentSelectionObj.cost;
+        baseMultiplier += currentSelectionObj.mult;
+        currentStepIndex++;
+        
+        compileResults();
+        renderActiveState();
+        return;
+      }
+
+      // Standard progress logic
+      if (currentStepIndex < states.length - 1) {
+        pushHistory();
+        
+        // Add the current step's cost/multiplier details to accumulators
+        const currentSelectionObj = pricingData[states[currentStepIndex]][currentSelection];
+        totalCost += currentSelectionObj.cost;
+        baseMultiplier += currentSelectionObj.mult;
+
+        currentStepIndex++;
+        renderActiveState();
+        updateRunningEstimate();
+      }
+    }
+
+    // 7. Push Current State Details to the Stack History
+    function pushHistory() {
+      stateHistory.push({
+        stepIndex: currentStepIndex,
+        totalCost: totalCost,
+        baseMultiplier: baseMultiplier,
+        selections: JSON.parse(JSON.stringify(selections))
+      });
+    }
+
+    // 8. Navigation: Back Button Logic
+    function goBack() {
+      if (stateHistory.length === 0) return;
+
+      // Pop state history details
+      const previousState = stateHistory.pop();
+      currentStepIndex = previousState.stepIndex;
+      totalCost = previousState.totalCost;
+      baseMultiplier = previousState.baseMultiplier;
+      selections = previousState.selections;
+
+      // Update indicators
+      renderActiveState();
+      updateRunningEstimate();
+
+      // Pre-select the restored choice in UI
+      const activeStateName = states[currentStepIndex];
+      const selectedIndex = selections[activeStateName];
+      const activePane = document.getElementById(`state-${activeStateName}`);
+      
+      if (activePane) {
+        const cards = activePane.querySelectorAll('.option-card');
+        cards.forEach((card, idx) => {
+          if (idx === selectedIndex) {
+            card.classList.add('selected');
+          } else {
+            card.classList.remove('selected');
+          }
+        });
+      }
+
+      // Remove handshake notification text if returning from results
+      document.getElementById('handshakeToast').classList.remove('show');
+    }
+
+    // 9. Reset Tool Functionality
+    function resetEstimator() {
+      currentStepIndex = 0;
+      totalCost = 0;
+      baseMultiplier = 1.0;
+      stateHistory = [];
+      selections = {};
+
+      // Reset selection styling
+      document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
+      document.getElementById('handshakeToast').classList.remove('show');
+
+      renderActiveState();
+      updateRunningEstimate();
+    }
+
+    // 10. Secondary CTA / Action Button control
+    function btnActionClick() {
+      if (currentStepIndex === states.length - 1) {
+        resetEstimator();
+      } else {
+        goNext();
+      }
+    }
+
+    // 11. Compile final values and update Results state DOM
+    function compileResults() {
+      // Calculate Estimates
+      const exactEst = totalCost * baseMultiplier;
+      
+      // Calculate +/- ranges for professional consulting bracket
+      const estimateMin = Math.round((exactEst * 0.9) / 50) * 50; // rounded to nearest 50
+      const estimateMax = Math.round((exactEst * 1.15) / 50) * 50;
+
+      // Format currency values
+      const minText = formatCurrency(estimateMin);
+      const maxText = formatCurrency(estimateMax);
+
+      // Render into DOM container
+      const txtEstimate = document.getElementById('txtEstimate');
+      txtEstimate.innerText = `${minText} - ${maxText}`;
+
+      const lblEstMult = document.getElementById('lblEstimateMultiplier');
+      lblEstMult.innerHTML = `Base calculated: <strong>${formatCurrency(Math.round(exactEst))}</strong> (Multiplier: ${baseMultiplier.toFixed(2)}x)`;
+
+      // Build selection recap
+      const recapGrid = document.getElementById('recapGrid');
+      recapGrid.innerHTML = '';
+
+      for (let i = 0; i < states.length - 1; i++) {
+        const stateKey = states[i];
+        const selectedIdx = selections[stateKey];
+        const option = pricingData[stateKey][selectedIdx];
+        
+        const recapItem = document.createElement('div');
+        recapItem.className = 'recap-item';
+        
+        const labelText = stateKey.replace(/([A-Z])/g, ' $1').trim();
+        recapItem.innerHTML = `<span>${labelText}:</span> <span>${option.name}</span>`;
+        recapGrid.appendChild(recapItem);
+      }
+
+      // Fire CRM Hook parent message automatically
+      transmitResults(estimateMin, estimateMax);
+    }
+
+    // 12. window.postMessage Communication Layer
+    function transmitResults(minEst, maxEst) {
+      // Secure origin tracking for production environments.
+      // Pass your Wix site URL as a parameter: e.g. src=".../index.html?targetOrigin=https://www.yourwixsite.com"
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetOrigin = urlParams.get('targetOrigin') || '*';
+
+      const dataPayload = {
+        appSource: 'DiagnosticEstimatorTool',
+        event: 'CalculationComplete',
+        timestamp: new Date().toISOString(),
+        totalBaseCost: totalCost,
+        baseMultiplier: baseMultiplier,
+        estimatedMin: minEst,
+        estimatedMax: maxEst,
+        formattedEstimate: `${formatCurrency(minEst)} - ${formatCurrency(maxEst)}`,
+        selections: selections
+      };
+
+      // Post message to Wix page parent frame securely
+      window.parent.postMessage(dataPayload, targetOrigin);
+      console.log(`Diagnostic Estimator Tool: window.postMessage sent to parent (targetOrigin: ${targetOrigin}).`, dataPayload);
+
+      // Show simulation status toast in Results view
+      const toast = document.getElementById('handshakeToast');
+      const msg = document.getElementById('handshakeMessage');
+      
+      toast.classList.add('show');
+      msg.innerHTML = `Estimation data of <strong>${formatCurrency(minEst)}-${formatCurrency(maxEst)}</strong> sent to parent Wix window.`;
+    }
+
+    // 13. UI Helper: Updates progress bar, navigation buttons, header text
+    function renderActiveState() {
+      // Toggle CSS class 'active' on panels
+      states.forEach(stateName => {
+        const pane = document.getElementById(`state-${stateName}`);
+        if (pane) {
+          if (stateName === states[currentStepIndex]) {
+            pane.classList.add('active');
+          } else {
+            pane.classList.remove('active');
+          }
+        }
+      });
+
+      // Update badge text
+      const badge = document.getElementById('lblStepBadge');
+      if (currentStepIndex === states.length - 1) {
+        badge.innerText = "Summary";
+      } else {
+        badge.innerText = `Step ${currentStepIndex + 1} of ${states.length - 1}`;
+      }
+
+      // Update Progress Bar Fill Width
+      const progressBar = document.getElementById('progressBar');
+      const progressPercent = ((currentStepIndex + 1) / states.length) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+
+      // Update Navigation Buttons States
+      const btnBack = document.getElementById('btnBack');
+      btnBack.disabled = (currentStepIndex === 0);
+
+      const btnAction = document.getElementById('btnAction');
+      const runningSummary = document.getElementById('runningSummary');
+
+      if (currentStepIndex === states.length - 1) {
+        btnAction.innerHTML = `Start Over <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>`;
+        runningSummary.style.visibility = 'hidden';
+      } else {
+        btnAction.innerHTML = `Next <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
+        runningSummary.style.visibility = 'visible';
+      }
+    }
+
+    // 14. UI Helper: Updates running estimate preview
+    function updateRunningEstimate() {
+      // For standard steps, show a simple running base cost accumulation indicator
+      const exactEst = totalCost * baseMultiplier;
+      const displayEstimate = Math.round(exactEst);
+      document.getElementById('lblRunningEst').innerText = formatCurrency(displayEstimate);
+    }
+
+    // 15. Currency Formatter helper
+    function formatCurrency(val) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0
+      }).format(val);
+    }
+  </script>
+</body>
+</html>
