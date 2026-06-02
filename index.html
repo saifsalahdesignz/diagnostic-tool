@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnostic Estimator Tool</title>
+  
+  <!-- Content Security Policy: Authorize CDN script injection & EmailJS API communication -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://api.emailjs.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:;">
+
+  <!-- Typography: Montserrat (Headers) and Inter (Body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* Tech-Noir Theme Custom Properties */
+    :root {
+      --bg-color: #1A1A1A;
+      --surface-color: #262626;
+      --accent-color: #40E0D0; /* Turquoise */
+      --accent-glow: rgba(64, 224, 208, 0.2);
+      --accent-hover: #5bf1e1;
+      --text-color: #FFFFFF;
+      --text-muted: #A3A3A3;
+      --border-color: #333333;
+      
+      --font-header: 'Montserrat', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      
+      --shadow-primary: 0 4px 12px rgba(0, 0, 0, 0.3);
+      --shadow-glow: 0 0 20px rgba(64, 224, 208, 0.15);
+      --transition-speed: 0.25s;
+    }
+
+    /* Reset & Fluid Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      width: 100vw;
+      padding: 2.5%;
+      overflow: hidden;
+    }
+
+    /* Responsive Main Fluid Container (no fixed-pixel height) */
+    .app-container {
+      width: 100%;
+      max-width: 750px;
+      height: 85vh;
+      min-height: 500px;
+      max-height: 680px;
+      background: var(--surface-color);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-primary);
+      padding: 4%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 12px;
+      }
+      .app-container {
+        height: 92vh;
+        min-height: 480px;
+        padding: 5% 4%;
+      }
+    }
+
+    /* Header & Progress Tracker */
+    header {
+      margin-bottom: 3%;
+      flex-shrink: 0;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2%;
+    }
+
+    .brand-title {
+      font-family: var(--font-header);
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-color);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-title span {
+      color: var(--accent-color);
+      text-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .step-badge {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent-color);
+      box-shadow: 0 0 8px var(--accent-color);
+      border-radius: 2px;
+      width: 0%;
+      transition: width var(--transition-speed) ease;
+    }
+
+    /* Slideshow Display Mechanics */
+    .slideshow-viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow-y: auto;
+      margin-bottom: 3%;
+      padding-right: 4px;
+    }
+
+    /* Custom Scrollbar for viewport content */
+    .slideshow-viewport::-webkit-scrollbar {
+      width: 4px;
+    }
+    .slideshow-viewport::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .slideshow-viewport::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 2px;
+    }
+
+    .slide-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      animation: slideIn var(--transition-speed) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(15px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .slide-title {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 1.4rem;
+      line-height: 1.3;
+      margin-bottom: 2%;
+      color: var(--text-color);
+    }
+
+    @media (max-width: 480px) {
+      .slide-title {
+        font-size: 1.2rem;
+      }
+    }
+
+    .slide-subtitle {
+      font-family: var(--font-body);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 4%;
+    }
+
+    /* 2x2 Grid Layout for Choices */
+    .button-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 4%;
+      flex: 1;
+      min-height: 180px;
+      margin-bottom: 2%;
+    }
+
+    @media (max-width: 480px) {
+      .button-grid {
+        gap: 3%;
+        min-height: 160px;
+      }
+    }
+
+    .grid-btn {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-color);
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      transition: all var(--transition-speed) ease;
+      padding: 4%;
+      text-align: center;
+    }
+
+    .grid-btn:hover {
+      background: rgba(64, 224, 208, 0.03);
+      border-color: var(--accent-color);
+      color: var(--accent-color);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .grid-btn.selected {
+      background: rgba(64, 224, 208, 0.08);
+      border-color: var(--accent-color);
+      color: var(--accent-color);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .grid-btn-desc {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 0.75rem;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text-muted);
+    }
+
+    /* Lead Capture Form Styling */
+    .lead-form {
+      display: flex;
+      flex-direction: column;
+      gap: 4%;
+      margin: auto 0;
+      width: 100%;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 3%;
+    }
+
+    .form-label {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--accent-color);
+      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .form-input {
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px 16px;
+      color: var(--text-color);
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      transition: border-color var(--transition-speed) ease;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 8px rgba(64, 224, 208, 0.15);
+    }
+
+    .input-error {
+      border-color: #ff5c5c !important;
+      box-shadow: 0 0 8px rgba(255, 92, 92, 0.15) !important;
+    }
+
+    .error-text {
+      color: #ff5c5c;
+      font-size: 0.75rem;
+      margin-top: 4px;
+      display: none;
+    }
+
+    /* Results Slideshow State Styles */
+    .results-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 2% 0;
+    }
+
+    .results-checkmark {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(64, 224, 208, 0.05);
+      border: 2px solid var(--accent-color);
+      box-shadow: var(--shadow-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-color);
+      margin-bottom: 3%;
+    }
+
+    .estimate-box {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 4%;
+      margin: 3% 0;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .estimate-label {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-color);
+      margin-bottom: 6px;
+    }
+
+    #txtEstimate {
+      font-family: var(--font-header);
+      font-weight: 800;
+      font-size: 2rem;
+      color: var(--text-color);
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      margin-bottom: 6px;
+    }
+
+    .estimate-details {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Recap Matrix Box */
+    .recap-box {
+      width: 100%;
+      max-width: 550px;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 3%;
+      text-align: left;
+      margin-bottom: 3%;
+    }
+
+    .recap-title {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text-color);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .recap-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 480px) {
+      .recap-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .recap-item {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      padding-bottom: 2px;
+    }
+
+    .recap-item span:first-child {
+      font-weight: 600;
+      color: #C2C2C2;
+    }
+
+    .recap-item span:last-child {
+      color: var(--accent-color);
+    }
+
+    /* postMessage Handshake Log Banner */
+    .handshake-toast {
+      background: rgba(64, 224, 208, 0.08);
+      border: 1px dashed var(--accent-color);
+      color: var(--accent-color);
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-family: monospace;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 480px;
+      text-align: left;
+      margin-top: 2%;
+    }
+
+    .handshake-toast.show {
+      display: flex;
+    }
+
+    /* Bottom Control Bar */
+    .bottom-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-color);
+      padding-top: 3%;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      font-family: var(--font-header);
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      color: var(--text-color);
+      border-color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent-color);
+      color: var(--bg-color);
+      box-shadow: 0 2px 6px rgba(64, 224, 208, 0.15);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 12px rgba(64, 224, 208, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header Tracker -->
+    <header id="appHeader">
+      <div class="header-top">
+        <div class="brand-title">
+          <span>//</span> Diagnostic Estimator
+        </div>
+        <div class="step-badge" id="lblStepBadge">Question 1 of 6</div>
+      </div>
+      
+      <!-- Progress Bar -->
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+    </header>
+
+    <!-- Main Viewport for Slideshow -->
+    <div class="slideshow-viewport" id="viewport">
+      <!-- Content is dynamically swapped by JS -->
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="bottom-toolbar">
+      <button class="btn btn-secondary" id="btnBack" onclick="goBack()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Back
+      </button>
+
+      <button class="btn btn-primary" id="btnAction" onclick="goNext()">
+        Next
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- JavaScript Refactored Slideshow Engine -->
+  <script>
+    // 1. Definition of questions & cost/mult maps for 2x2 grid answers
+    const questions = [
+      {
+        id: 'UI_Design',
+        title: 'User Interface & Wireframes',
+        text: 'Do you have existing UI designs or wireframes ready for development?',
+        cost: { Yes: 400, No: 1200, Both: 800, Neither: 1500 },
+        mult: { Yes: 0.0, No: 0.1, Both: 0.05, Neither: 0.15 }
+      },
+      {
+        id: 'Billing',
+        title: 'Billing & Transaction API',
+        text: 'Will your platform require payment processing or user subscription billing?',
+        cost: { Yes: 800, No: 0, Both: 1400, Neither: 0 },
+        mult: { Yes: 0.1, No: 0.0, Both: 0.2, Neither: 0.0 }
+      },
+      {
+        id: 'CMS_Integration',
+        title: 'Dynamic Content Management',
+        text: 'Do you need dynamic content management (CMS) for blogs, articles, or products?',
+        cost: { Yes: 600, No: 0, Both: 1100, Neither: 0 },
+        mult: { Yes: 0.05, No: 0.0, Both: 0.1, Neither: 0.0 }
+      },
+      {
+        id: 'APIs',
+        title: 'Integration Layer APIs',
+        text: 'Will this project require integration with external third-party APIs or databases?',
+        cost: { Yes: 900, No: 0, Both: 1600, Neither: 0 },
+        mult: { Yes: 0.1, No: 0.0, Both: 0.2, Neither: 0.0 }
+      },
+      {
+        id: 'SEO',
+        title: 'SEO & Discoverability',
+        text: 'Do you need advanced search engine optimization (SEO) and page speed audits?',
+        cost: { Yes: 400, No: 0, Both: 900, Neither: 0 },
+        mult: { Yes: 0.05, No: 0.0, Both: 0.1, Neither: 0.0 }
+      },
+      {
+        id: 'Auth',
+        title: 'User Profile & Identity Auth',
+        text: 'Will the project require user authentication (login, profiles, roles)?',
+        cost: { Yes: 700, No: 0, Both: 1300, Neither: 0 },
+        mult: { Yes: 0.1, No: 0.0, Both: 0.15, Neither: 0.0 }
+      }
+    ];
+
+    // 2. State and History Trackers
+    let currentSlideIndex = 0;
+    let totalCost = 1000;       // Base configuration cost
+    let baseMultiplier = 1.0;   // Base complexity multiplier
+    let stateHistory = [];      // Navigation stack for back button operations
+    
+    // Core tracking object requested for Wix integration
+    const userData = {
+      name: '',
+      email: '',
+      answers: {}
+    };
+
+    // 3. Document Elements Cache
+    const viewport = document.getElementById('viewport');
+    const btnBack = document.getElementById('btnBack');
+    const btnAction = document.getElementById('btnAction');
+    const progressBar = document.getElementById('progressBar');
+    const lblStepBadge = document.getElementById('lblStepBadge');
+    const appHeader = document.getElementById('appHeader');
+
+    // 4. Initial Launch
+    window.addEventListener('DOMContentLoaded', () => {
+      loadEmailJS();
+      renderSlide();
+    });
+
+    // 5. Main Render Loop
+    function renderSlide() {
+      viewport.innerHTML = '';
+      
+      const totalSlides = questions.length + 2; // Questions + Lead Slide + Results Slide
+      
+      // Update Progress Track
+      const progressPercent = ((currentSlideIndex) / (totalSlides - 1)) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+
+      // Update Navigation Buttons States
+      btnBack.disabled = (currentSlideIndex === 0);
+      
+      if (currentSlideIndex === totalSlides - 1) {
+        // Results Slide State
+        appHeader.style.display = 'none'; // Clean fullscreen summary layout
+        btnAction.innerHTML = `Start Over <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>`;
+      } else if (currentSlideIndex === totalSlides - 2) {
+        // Lead Capture State
+        appHeader.style.display = 'block';
+        lblStepBadge.innerText = 'Registration';
+        btnAction.innerHTML = `Submit & Review <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
+      } else {
+        // Question States
+        appHeader.style.display = 'block';
+        lblStepBadge.innerText = `Question ${currentSlideIndex + 1} of ${questions.length}`;
+        btnAction.innerHTML = `Next <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
+      }
+
+      // Generate HTML inside viewport based on index
+      if (currentSlideIndex < questions.length) {
+        renderQuestionSlide();
+      } else if (currentSlideIndex === questions.length) {
+        renderLeadCaptureSlide();
+      } else {
+        renderResultsSlide();
+      }
+    }
+
+    // 6. Slide Renderers
+    function renderQuestionSlide() {
+      const q = questions[currentSlideIndex];
+      const selectedAnswer = userData.answers[q.id];
+
+      const html = `
+        <div class="slide-content">
+          <div class="slide-subtitle">${q.title}</div>
+          <h2 class="slide-title">${q.text}</h2>
+          
+          <div class="button-grid">
+            <button class="grid-btn ${selectedAnswer === 'Yes' ? 'selected' : ''}" onclick="selectAnswer('${q.id}', 'Yes')">
+              Yes
+              <span class="grid-btn-desc">Require this function</span>
+            </button>
+            <button class="grid-btn ${selectedAnswer === 'No' ? 'selected' : ''}" onclick="selectAnswer('${q.id}', 'No')">
+              No
+              <span class="grid-btn-desc">Do not require</span>
+            </button>
+            <button class="grid-btn ${selectedAnswer === 'Both' ? 'selected' : ''}" onclick="selectAnswer('${q.id}', 'Both')">
+              Both
+              <span class="grid-btn-desc">Multiple options required</span>
+            </button>
+            <button class="grid-btn ${selectedAnswer === 'Neither' ? 'selected' : ''}" onclick="selectAnswer('${q.id}', 'Neither')">
+              Neither
+              <span class="grid-btn-desc">Not applicable / custom</span>
+            </button>
+          </div>
+        </div>
+      `;
+      viewport.innerHTML = html;
+    }
+
+    function renderLeadCaptureSlide() {
+      const html = `
+        <div class="slide-content">
+          <div class="slide-subtitle">Diagnostic Report Generation</div>
+          <h2 class="slide-title">Enter details to calculate your implementation report</h2>
+          
+          <div class="lead-form">
+            <div class="form-group">
+              <label class="form-label" for="txtName">Name</label>
+              <input type="text" class="form-input" id="txtName" placeholder="Enter your full name" value="${userData.name}">
+              <div class="error-text" id="errName">Name field cannot be left blank.</div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="txtEmail">Email Address</label>
+              <input type="email" class="form-input" id="txtEmail" placeholder="Enter your email address" value="${userData.email}">
+              <div class="error-text" id="errEmail">Please supply a valid email address.</div>
+            </div>
+          </div>
+        </div>
+      `;
+      viewport.innerHTML = html;
+    }
+
+    function renderResultsSlide() {
+      // Formulate Estimates
+      const exactEst = totalCost * baseMultiplier;
+      const estimateMin = Math.round((exactEst * 0.9) / 50) * 50; 
+      const estimateMax = Math.round((exactEst * 1.15) / 50) * 50;
+
+      const formattedRange = `${formatCurrency(estimateMin)} - ${formatCurrency(estimateMax)}`;
+
+      let recapItemsHtml = '';
+      questions.forEach(q => {
+        const choice = userData.answers[q.id] || 'Unanswered';
+        recapItemsHtml += `
+          <div class="recap-item">
+            <span>${q.title}:</span>
+            <span>${choice}</span>
+          </div>
+        `;
+      });
+
+      const html = `
+        <div class="slide-content results-wrap">
+          <div class="results-checkmark">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          </div>
+
+          <h2 class="slide-title">Calculation Complete</h2>
+          <p class="slide-subtitle" style="margin-bottom: 2%;">Report generated for ${userData.name} (${userData.email}).</p>
+          
+          <div class="estimate-box">
+            <div class="estimate-label">Estimated Budget Range</div>
+            <div id="txtEstimate">${formattedRange}</div>
+            <div class="estimate-details" id="lblMultiplierText">
+              Base configurations: ${formatCurrency(Math.round(exactEst))} (${baseMultiplier.toFixed(2)}x factor)
+            </div>
+          </div>
+
+          <div class="recap-box">
+            <div class="recap-title">Diagnostic Answers Summary</div>
+            <div class="recap-grid">
+              ${recapItemsHtml}
+            </div>
+          </div>
+
+          <div class="handshake-toast" id="handshakeToast">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div id="handshakeMessage">Handshake sent to Wix parent frame.</div>
+          </div>
+        </div>
+      `;
+      viewport.innerHTML = html;
+
+      // Send telemetry message to Wix
+      transmitResults(estimateMin, estimateMax);
+
+      // Send email report via EmailJS
+      sendEmailReport(formattedRange);
+    }
+
+    // 7. Input selection logic
+    function selectAnswer(questionId, optionKey) {
+      const q = questions[currentSlideIndex];
+      
+      // Update local storage object
+      userData.answers[questionId] = optionKey;
+
+      // Select active card styling visual cues
+      const cards = viewport.querySelectorAll('.grid-btn');
+      const optKeys = ['Yes', 'No', 'Both', 'Neither'];
+      cards.forEach((card, idx) => {
+        if (optKeys[idx] === optionKey) {
+          card.classList.add('selected');
+        } else {
+          card.classList.remove('selected');
+        }
+      });
+
+      // Advance with brief UX delay
+      setTimeout(() => {
+        goNext();
+      }, 250);
+    }
+
+    // 8. Navigation Transitions
+    function goNext() {
+      const totalSlides = questions.length + 2;
+
+      if (currentSlideIndex < questions.length) {
+        // Validation: Verify question has been answered
+        const currentQId = questions[currentSlideIndex].id;
+        if (!userData.answers[currentQId]) {
+          alert('Please choose one of the options before continuing.');
+          return;
+        }
+
+        pushHistory();
+        
+        // Add modifier calculations
+        const chosen = userData.answers[currentQId];
+        const costModifier = questions[currentSlideIndex].cost[chosen];
+        const multModifier = questions[currentSlideIndex].mult[chosen];
+
+        totalCost += costModifier;
+        baseMultiplier += multModifier;
+
+        currentSlideIndex++;
+        renderSlide();
+      } else if (currentSlideIndex === questions.length) {
+        // Validation: Lead Capture Slide Form Field Verification
+        const txtName = document.getElementById('txtName');
+        const txtEmail = document.getElementById('txtEmail');
+        const errName = document.getElementById('errName');
+        const errEmail = document.getElementById('errEmail');
+
+        let isValid = true;
+
+        // Name Validation
+        if (!txtName.value.trim()) {
+          txtName.classList.add('input-error');
+          errName.style.display = 'block';
+          isValid = false;
+        } else {
+          txtName.classList.remove('input-error');
+          errName.style.display = 'none';
+        }
+
+        // Email Validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(txtEmail.value.trim())) {
+          txtEmail.classList.add('input-error');
+          errEmail.style.display = 'block';
+          isValid = false;
+        } else {
+          txtEmail.classList.remove('input-error');
+          errEmail.style.display = 'none';
+        }
+
+        if (isValid) {
+          pushHistory();
+          userData.name = txtName.value.trim();
+          userData.email = txtEmail.value.trim();
+          currentSlideIndex++;
+          renderSlide();
+        }
+      } else {
+        // Results Slide -> "Start Over" button action
+        resetEstimator();
+      }
+    }
+
+    function goBack() {
+      if (stateHistory.length === 0) return;
+
+      const prevState = stateHistory.pop();
+      currentSlideIndex = prevState.slideIndex;
+      totalCost = prevState.totalCost;
+      baseMultiplier = prevState.baseMultiplier;
+      
+      // Deep copy restore of userData
+      userData.name = prevState.userData.name;
+      userData.email = prevState.userData.email;
+      userData.answers = prevState.userData.answers;
+
+      renderSlide();
+    }
+
+    function pushHistory() {
+      stateHistory.push({
+        slideIndex: currentSlideIndex,
+        totalCost: totalCost,
+        baseMultiplier: baseMultiplier,
+        userData: JSON.parse(JSON.stringify(userData))
+      });
+    }
+
+    function resetEstimator() {
+      currentSlideIndex = 0;
+      totalCost = 1000;
+      baseMultiplier = 1.0;
+      stateHistory = [];
+      userData.name = '';
+      userData.email = '';
+      userData.answers = {};
+
+      renderSlide();
+    }
+
+    // 9. postMessage Secure Wix Communication
+    function transmitResults(minEst, maxEst) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetOrigin = urlParams.get('targetOrigin') || '*';
+
+      const dataPayload = {
+        appSource: 'DiagnosticEstimatorTool',
+        event: 'CalculationComplete',
+        timestamp: new Date().toISOString(),
+        name: userData.name,
+        email: userData.email,
+        answers: userData.answers,
+        totalBaseCost: totalCost,
+        baseMultiplier: baseMultiplier,
+        estimatedMin: minEst,
+        estimatedMax: maxEst,
+        formattedEstimate: `${formatCurrency(minEst)} - ${formatCurrency(maxEst)}`
+      };
+
+      // Post message to Wix parent window securely
+      window.parent.postMessage(dataPayload, targetOrigin);
+      console.log(`Diagnostic Estimator: transmitted telemetry payload to Wix (targetOrigin: ${targetOrigin}).`, dataPayload);
+
+      // Display UI indicator
+      const toast = document.getElementById('handshakeToast');
+      const msg = document.getElementById('handshakeMessage');
+      
+      toast.classList.add('show');
+      msg.innerHTML = `Data sent to parent Wix frame (Target: <code>${targetOrigin}</code>).`;
+    }
+
+    // 9.5 Send email report via EmailJS API (with custom null storage provider to bypass tracking restrictions)
+    let emailJSLoaded = false;
+    function loadEmailJS() {
+      return new Promise((resolve) => {
+        if (window.emailjs) {
+          emailJSLoaded = true;
+          resolve();
+          return;
+        }
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+        script.onload = () => {
+          // Initialize EmailJS with custom dummy storage provider to bypass browser tracking prevention policies
+          emailjs.init({
+            publicKey: "sc0U2hMJlqfQKO_W1",
+            storageProvider: {
+              get: () => Promise.resolve(null),
+              set: () => Promise.resolve(),
+              remove: () => Promise.resolve()
+            }
+          });
+          emailJSLoaded = true;
+          console.log('EmailJS: Script dynamically loaded and initialized with custom storage bypass.');
+          resolve();
+        };
+        script.onerror = () => {
+          console.error('EmailJS: Script failed to load dynamically.');
+          resolve();
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    function sendEmailReport(formattedRange) {
+      if (!emailJSLoaded || !window.emailjs) {
+        console.warn('EmailJS: Library not pre-loaded, lazy loading before dispatching email...');
+        loadEmailJS().then(() => {
+          if (window.emailjs) {
+            executeEmailReport(formattedRange);
+          } else {
+            console.error('EmailJS: Library failed to initialize, dispatch aborted.');
+          }
+        });
+      } else {
+        executeEmailReport(formattedRange);
+      }
+    }
+
+    function executeEmailReport(formattedRange) {
+      const templateParams = {
+        user_name: userData.name,
+        user_email: userData.email,
+        budget_range: formattedRange,
+        summary: JSON.stringify(userData.answers, null, 2)
+      };
+
+      const templateId = 'template_02od8au';
+
+      emailjs.send('service_vduu24q', templateId, templateParams)
+        .then((response) => {
+          console.log('EmailJS: Report email dispatched successfully!', response.status, response.text);
+        }, (error) => {
+          console.error('EmailJS: Failed to dispatch email report...', error);
+        });
+    }
+
+    // 10. Format currency values
+    function formatCurrency(val) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0
+      }).format(val);
+    }
+  </script>
+</body>
+</html>
